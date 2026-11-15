@@ -1,4 +1,3 @@
-import os
 import sys
 from pathlib import Path
 
@@ -7,12 +6,12 @@ from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QFont
 from PySide6.QtWidgets import (
     QApplication, QFrame, QHBoxLayout, QLabel, QMainWindow,
-    QMessageBox, QPushButton, QVBoxLayout, QWidget
+    QMessageBox, QPushButton, QSlider, QVBoxLayout, QWidget
 )
 
 APP_TITLE = "Hamleys Closing Announcer"
 INTERVAL_SECONDS = 80
-CLOSING_TIME_TEXT = "09:00 PM"
+CLOSING_TIME_TEXT = "10:00 PM"
 AUDIO_FILES = [
     ("1st_announcement.mp3", "Announcement 1"),
     ("2nd_announcement.mp3", "Announcement 2"),
@@ -25,41 +24,6 @@ def resource_path(filename: str) -> Path:
     return base / filename
 
 
-class AudioDucker:
-    """Temporarily mute other Windows audio sessions during an announcement."""
-
-    def __init__(self):
-        self.saved_sessions = []
-
-    def mute_other_apps(self):
-        self.restore()
-        if os.name != "nt":
-            return False
-        try:
-            from pycaw.pycaw import AudioUtilities
-            current_pid = os.getpid()
-            for session in AudioUtilities.GetAllSessions():
-                process = session.Process
-                if process is None or process.pid == current_pid:
-                    continue
-                volume = session.SimpleAudioVolume
-                was_muted = bool(volume.GetMute())
-                self.saved_sessions.append((volume, was_muted))
-                volume.SetMute(True, None)
-            return True
-        except Exception:
-            self.restore()
-            return False
-
-    def restore(self):
-        for volume, was_muted in self.saved_sessions:
-            try:
-                volume.SetMute(was_muted, None)
-            except Exception:
-                pass
-        self.saved_sessions.clear()
-
-
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
@@ -70,7 +34,7 @@ class MainWindow(QMainWindow):
         self.is_announcement_playing = False
         self.next_audio_index = 0
         self.seconds_remaining = INTERVAL_SECONDS
-        self.ducker = AudioDucker()
+        self.announcement_volume = 0.80
         pygame.mixer.init()
 
         self.countdown_timer = QTimer(self)
@@ -142,6 +106,27 @@ class MainWindow(QMainWindow):
         info_row.addWidget(self.info_card("ANNOUNCEMENTS", "3"))
         outer.addLayout(info_row)
 
+        volume_card = QFrame()
+        volume_card.setObjectName("volumeCard")
+        volume_layout = QVBoxLayout(volume_card)
+        volume_layout.setContentsMargins(18, 12, 18, 12)
+        volume_header = QHBoxLayout()
+        volume_title = QLabel("ANNOUNCEMENT VOLUME")
+        volume_title.setObjectName("volumeTitle")
+        self.volume_value = QLabel("80%")
+        self.volume_value.setObjectName("volumeValue")
+        volume_header.addWidget(volume_title)
+        volume_header.addStretch(1)
+        volume_header.addWidget(self.volume_value)
+        self.volume_slider = QSlider(Qt.Horizontal)
+        self.volume_slider.setRange(0, 100)
+        self.volume_slider.setValue(80)
+        self.volume_slider.setToolTip("Changes only this app's announcement volume")
+        self.volume_slider.valueChanged.connect(self.set_announcement_volume)
+        volume_layout.addLayout(volume_header)
+        volume_layout.addWidget(self.volume_slider)
+        outer.addWidget(volume_card)
+
         playlist_title = QLabel("Announcement playlist")
         playlist_title.setObjectName("sectionTitle")
         outer.addWidget(playlist_title)
@@ -163,7 +148,7 @@ class MainWindow(QMainWindow):
             self.playlist_labels.append((item, state))
             outer.addWidget(item)
 
-        footer = QLabel("Other app audio is muted during announcements, then restored.")
+        footer = QLabel("This slider changes announcement volume only. Windows and Resiowall volume stay untouched.")
         footer.setObjectName("footer")
         footer.setAlignment(Qt.AlignCenter)
         outer.addStretch(1)
@@ -186,7 +171,12 @@ class MainWindow(QMainWindow):
             QPushButton#stopButton { background: #E7E1DE; color: #514744; }
             QPushButton#stopButton:hover { background: #D8CFCA; }
             QPushButton#stopButton:disabled { color: #A69D98; }
-            QFrame#infoCard, QFrame#playlistItem { background: #FFFCF9; border: 1px solid #F0DED5; border-radius: 14px; }
+            QFrame#infoCard, QFrame#playlistItem, QFrame#volumeCard { background: #FFFCF9; border: 1px solid #F0DED5; border-radius: 14px; }
+            QLabel#volumeTitle { color: #887873; font-size: 11px; font-weight: 800; }
+            QLabel#volumeValue { color: #8F1020; font-size: 14px; font-weight: 800; }
+            QSlider::groove:horizontal { height: 8px; background: #F0DED5; border-radius: 4px; }
+            QSlider::sub-page:horizontal { background: #C8102E; border-radius: 4px; }
+            QSlider::handle:horizontal { background: #C8102E; width: 18px; margin: -6px 0; border-radius: 9px; }
             QLabel#infoTitle { color: #887873; font-size: 11px; font-weight: 800; }
             QLabel#infoValue { color: #8F1020; font-size: 20px; font-weight: 800; }
             QLabel#sectionTitle { color: #541B1B; font-size: 17px; font-weight: 800; margin-top: 3px; }
@@ -195,6 +185,11 @@ class MainWindow(QMainWindow):
             QLabel#fileState { color: #188342; font-size: 11px; font-weight: 800; }
             QLabel#footer { color: #8B7B75; font-size: 11px; }
         """)
+
+    def set_announcement_volume(self, value):
+        self.announcement_volume = value / 100.0
+        self.volume_value.setText(f"{value}%")
+        pygame.mixer.music.set_volume(self.announcement_volume)
 
     def info_card(self, title, value):
         card = QFrame()
@@ -236,7 +231,6 @@ class MainWindow(QMainWindow):
             pygame.mixer.music.stop()
         except pygame.error:
             pass
-        self.ducker.restore()
         self.is_announcement_playing = False
         self.start_button.setEnabled(True)
         self.stop_button.setEnabled(False)
@@ -264,11 +258,10 @@ class MainWindow(QMainWindow):
             return
         filename, display_name = AUDIO_FILES[self.next_audio_index]
         try:
-            self.ducker.mute_other_apps()
             pygame.mixer.music.load(str(resource_path(filename)))
+            pygame.mixer.music.set_volume(self.announcement_volume)
             pygame.mixer.music.play()
         except Exception as exc:
-            self.ducker.restore()
             QMessageBox.critical(self, "Playback error", f"Could not play {filename}.\n\n{exc}")
             self.stop_announcements()
             return
@@ -286,7 +279,6 @@ class MainWindow(QMainWindow):
             return
         if not pygame.mixer.music.get_busy():
             self.playback_timer.stop()
-            self.ducker.restore()
             self.is_announcement_playing = False
             for _, state in self.playlist_labels:
                 state.setText("READY")
