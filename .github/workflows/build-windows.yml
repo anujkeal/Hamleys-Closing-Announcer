@@ -29,7 +29,7 @@ jobs:
       - name: Build application
         shell: pwsh
         run: |
-          pyinstaller --noconfirm --clean --onefile --windowed --name "Hamleys Closing Announcer" --collect-all pygame --collect-all PySide6 --hidden-import=pycaw.pycaw --add-data "1st_announcement.mp3;." --add-data "2nd_announcement.mp3;." --add-data "3th_announcement.mp3;." main.py
+          pyinstaller --noconfirm --clean --onefile --windowed --name "Hamleys Closing Announcer" --collect-all pygame --collect-all PySide6 --add-data "1st_announcement.mp3;." --add-data "2nd_announcement.mp3;." --add-data "3th_announcement.mp3;." main.py
 
       - name: Upload EXE
         uses: actions/upload-artifact@v4
