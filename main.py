@@ -352,6 +352,12 @@ class ClosingAnnouncer:
 
 def main():
     root = tk.Tk()
+    icon_file = resource_path("assets/hamleys-announcer.ico")
+    if icon_file.is_file():
+        try:
+            root.iconbitmap(str(icon_file))
+        except tk.TclError:
+            pass
     ClosingAnnouncer(root)
     root.mainloop()
 
