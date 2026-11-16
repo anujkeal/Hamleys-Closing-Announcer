@@ -1,5 +1,5 @@
 [Setup]
-AppId={{B78A3C2D-5B8E-4B8A-A30E-5A6C9E7D2041}
+AppId={{B78A3C2D-5B8E-4B8A-A30E-5A6C9E7D2041}}
 AppName=Hamleys Closing Announcer
 AppVersion=1.0.0
 AppPublisher=Keal
