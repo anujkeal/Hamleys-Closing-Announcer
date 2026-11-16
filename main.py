@@ -38,15 +38,18 @@ class AudioPlayer:
     def __init__(self):
         self.volume = DEFAULT_VOLUME
         self.initialized = False
-        try:
-            pygame.mixer.init()
-            self.initialized = True
-            pygame.mixer.music.set_volume(self.volume / 100.0)
-        except pygame.error as exc:
-            raise RuntimeError(
-                "The audio device could not be initialized. Check that the PC has an active audio output device.\\n\\n"
-                + str(exc)
-            ) from exc
+
+    def _ensure_initialized(self):
+        if not self.initialized:
+            try:
+                pygame.mixer.init()
+                self.initialized = True
+                pygame.mixer.music.set_volume(self.volume / 100.0)
+            except pygame.error as exc:
+                raise RuntimeError(
+                    "The audio device could not be initialized. Check that the PC has an active audio output device.\\n\\n"
+                    + str(exc)
+                ) from exc
 
     def set_volume(self, percent):
         self.volume = max(0, min(100, int(percent)))
@@ -54,6 +57,7 @@ class AudioPlayer:
             pygame.mixer.music.set_volume(self.volume / 100.0)
 
     def play(self, filename):
+        self._ensure_initialized()
         path = resource_path(filename)
         if not path.is_file():
             raise FileNotFoundError(f"Audio file not found:\\n{path}")
