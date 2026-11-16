@@ -53,7 +53,7 @@ jobs:
       - name: Build standalone Windows application
         shell: pwsh
         run: |
-          pyinstaller --noconfirm --clean --onefile --windowed --icon "assets/hamleys-announcer.ico" --name "Hamleys Closing Announcer" --add-data "1st_announcement.mp3;." --add-data "2nd_announcement.mp3;." --add-data "3th_announcement.mp3;." main.py
+          pyinstaller --noconfirm --clean --onefile --windowed --icon "assets/hamleys-announcer.ico" --name "Hamleys Closing Announcer" --add-data "1st_announcement.mp3;." --add-data "2nd_announcement.mp3;." --add-data "3th_announcement.mp3;." --add-data "assets/hamleys-announcer.ico;assets" main.py
 
       - name: Install Inno Setup
         run: choco install innosetup --no-progress -y
