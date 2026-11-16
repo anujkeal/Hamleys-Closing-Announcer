@@ -1,4 +1,4 @@
-name: Build Windows EXE
+name: Build Lightweight Windows EXE
 
 on:
   push:
@@ -21,20 +21,20 @@ jobs:
           python-version: "3.11"
           cache: "pip"
 
-      - name: Install dependencies
+      - name: Install the EXE builder
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Build application
+      - name: Build lightweight native Windows application
         shell: pwsh
         run: |
-          pyinstaller --noconfirm --clean --onefile --windowed --name "Hamleys Closing Announcer" --collect-all pygame --collect-all PySide6 --add-data "1st_announcement.mp3;." --add-data "2nd_announcement.mp3;." --add-data "3th_announcement.mp3;." main.py
+          pyinstaller --noconfirm --clean --onefile --windowed --name "Hamleys Closing Announcer" --add-data "1st_announcement.mp3;." --add-data "2nd_announcement.mp3;." --add-data "3th_announcement.mp3;." main.py
 
-      - name: Upload EXE
+      - name: Upload standalone Windows EXE
         uses: actions/upload-artifact@v4
         with:
-          name: Hamleys-Closing-Announcer-Windows
+          name: Hamleys-Closing-Announcer-Lightweight-Windows
           path: dist/Hamleys Closing Announcer.exe
           if-no-files-found: error
           retention-days: 30
