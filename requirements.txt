@@ -1,3 +1,3 @@
-PySide6==6.8.2.1
-pygame==2.6.1
+# The application uses only Python's standard library at runtime.
+# PyInstaller is used only on the GitHub Actions build machine.
 PyInstaller==6.11.1
