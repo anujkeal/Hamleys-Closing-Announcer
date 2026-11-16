@@ -16,7 +16,7 @@ SolidCompression=yes
 WizardStyle=modern
 
 [Tasks]
-Name: "desktopicon"; Description: "Create a desktop shortcut"; GroupDescription: "Additional shortcuts:"; Flags: checked
+Name: "desktopicon"; Description: "Create a desktop shortcut"; GroupDescription: "Additional shortcuts:"
 
 [Files]
 Source: "dist\Hamleys Closing Announcer.exe"; DestDir: "{app}"; Flags: ignoreversion
