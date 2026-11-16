@@ -299,9 +299,8 @@ class ClosingAnnouncer:
         self.start_button.configure(state="disabled")
         self.stop_button.configure(state="normal")
         self.status_label.configure(text="●  RUNNING", fg=GREEN)
-        self.message_label.configure(text="Announcements are scheduled")
-        self._refresh_countdown()
-        self.root.after(1000, self._tick)
+        self.message_label.configure(text="Starting first announcement…")
+        self._play_next()
 
     def stop(self):
         self.running = False
