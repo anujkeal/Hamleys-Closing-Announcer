@@ -1,3 +1,4 @@
-# The application uses only Python's standard library at runtime.
+# pygame provides bundled SDL_mixer audio playback for MP3 files.
 # PyInstaller is used only on the GitHub Actions build machine.
+pygame==2.6.1
 PyInstaller==6.11.1
