@@ -1,4 +1,4 @@
-name: Build Lightweight Windows EXE
+name: Build Windows App and Installer
 
 on:
   push:
@@ -21,20 +21,54 @@ jobs:
           python-version: "3.11"
           cache: "pip"
 
-      - name: Install the EXE builder
+      - name: Install build dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
+          pip install Pillow
 
-      - name: Build lightweight native Windows application
+      - name: Create application icon
         shell: pwsh
         run: |
-          pyinstaller --noconfirm --clean --onefile --windowed --name "Hamleys Closing Announcer" --add-data "1st_announcement.mp3;." --add-data "2nd_announcement.mp3;." --add-data "3th_announcement.mp3;." main.py
+          New-Item -ItemType Directory -Force assets | Out-Null
+          @'
+          from PIL import Image, ImageDraw
+          S = 256
+          im = Image.new("RGBA", (S, S), (0, 0, 0, 0))
+          d = ImageDraw.Draw(im)
+          d.rounded_rectangle((8, 8, 248, 248), radius=54, fill=(200, 16, 46, 255))
+          # Cream megaphone body
+          d.polygon([(52, 103), (151, 73), (151, 183), (52, 153)], fill=(255, 250, 242, 255))
+          d.polygon([(52, 103), (32, 108), (32, 148), (52, 153)], fill=(255, 250, 242, 255))
+          d.polygon([(79, 160), (112, 171), (101, 215), (83, 211)], fill=(255, 250, 242, 255))
+          # Sound waves
+          d.arc((139, 85, 203, 171), start=300, end=60, fill=(255, 250, 242, 255), width=12)
+          d.arc((154, 66, 231, 190), start=300, end=60, fill=(255, 250, 242, 255), width=12)
+          # Small star accent
+          d.regular_polygon((190, 52, 12), 5, rotation=0, fill=(255, 210, 70, 255))
+          im.save("assets/hamleys-announcer.ico", format="ICO", sizes=[(256,256),(128,128),(64,64),(48,48),(32,32),(16,16)])
+          '@ | Set-Content -Encoding UTF8 create_icon.py
+          python create_icon.py
 
-      - name: Upload standalone Windows EXE
+      - name: Build standalone Windows application
+        shell: pwsh
+        run: |
+          pyinstaller --noconfirm --clean --onefile --windowed --icon "assets/hamleys-announcer.ico" --name "Hamleys Closing Announcer" --add-data "1st_announcement.mp3;." --add-data "2nd_announcement.mp3;." --add-data "3th_announcement.mp3;." main.py
+
+      - name: Install Inno Setup
+        run: choco install innosetup --no-progress -y
+
+      - name: Create one-click installer
+        shell: pwsh
+        run: |
+          & "C:\\Program Files (x86)\\Inno Setup 6\\ISCC.exe" installer.iss
+
+      - name: Upload installer and portable EXE
         uses: actions/upload-artifact@v4
         with:
-          name: Hamleys-Closing-Announcer-Lightweight-Windows
-          path: dist/Hamleys Closing Announcer.exe
+          name: Hamleys-Closing-Announcer-Windows-Package
+          path: |
+            installer/Hamleys-Closing-Announcer-Setup.exe
+            dist/Hamleys Closing Announcer.exe
           if-no-files-found: error
           retention-days: 30
