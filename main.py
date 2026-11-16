@@ -1,6 +1,7 @@
 import ctypes
 import sys
 import tkinter as tk
+import pygame
 from pathlib import Path
 from tkinter import messagebox, ttk
 
@@ -31,83 +32,55 @@ def resource_path(filename):
     return base / filename
 
 
-class WindowsMCIPlayer:
-    """Play MP3 audio through Windows MCI with per-player volume control."""
+class AudioPlayer:
+    """Play bundled MP3 files through pygame/SDL_mixer, not Windows MCI."""
 
     def __init__(self):
-        if sys.platform != "win32":
-            raise OSError("This application is designed for Windows.")
-        self.winmm = ctypes.WinDLL("winmm")
-        self.send_string = self.winmm.mciSendStringW
-        self.send_string.argtypes = [
-            ctypes.c_wchar_p, ctypes.c_wchar_p, ctypes.c_uint, ctypes.c_void_p
-        ]
-        self.send_string.restype = ctypes.c_uint
-        self.error_string = self.winmm.mciGetErrorStringW
-        self.error_string.argtypes = [
-            ctypes.c_uint, ctypes.c_wchar_p, ctypes.c_uint
-        ]
-        self.error_string.restype = ctypes.c_int
-        self.alias = "hamleys_closing_audio"
-        self.is_open = False
         self.volume = DEFAULT_VOLUME
-
-    def command(self, command):
-        buffer = ctypes.create_unicode_buffer(256)
-        result = self.send_string(command, buffer, len(buffer), None)
-        if result:
-            error = ctypes.create_unicode_buffer(256)
-            if self.error_string(result, error, len(error)):
-                detail = error.value
-            else:
-                detail = f"Windows multimedia error {result}"
-            raise RuntimeError(detail)
-        return buffer.value
+        self.initialized = False
+        try:
+            pygame.mixer.init()
+            self.initialized = True
+            pygame.mixer.music.set_volume(self.volume / 100.0)
+        except pygame.error as exc:
+            raise RuntimeError(
+                "The audio device could not be initialized. Check that the PC has an active audio output device.\\n\\n"
+                + str(exc)
+            ) from exc
 
     def set_volume(self, percent):
         self.volume = max(0, min(100, int(percent)))
-        if self.is_open:
-            self.command(
-                f"setaudio {self.alias} volume to {self.volume * 10}"
-            )
+        if self.initialized:
+            pygame.mixer.music.set_volume(self.volume / 100.0)
 
     def play(self, filename):
-        self.close()
-        path = str(resource_path(filename).resolve())
-        if not Path(path).is_file():
-            raise FileNotFoundError(f"Audio file not found:\n{path}")
-        self.command(f'open "{path}" type mpegvideo alias {self.alias}')
-        self.is_open = True
+        path = resource_path(filename)
+        if not path.is_file():
+            raise FileNotFoundError(f"Audio file not found:\\n{path}")
         try:
-            self.set_volume(self.volume)
-            self.command(f"play {self.alias}")
-        except Exception:
-            self.close()
-            raise
+            pygame.mixer.music.stop()
+            pygame.mixer.music.load(str(path))
+            pygame.mixer.music.set_volume(self.volume / 100.0)
+            pygame.mixer.music.play()
+        except pygame.error as exc:
+            raise RuntimeError(f"Could not decode or play {filename}: {exc}") from exc
 
     def playing(self):
-        if not self.is_open:
-            return False
-        try:
-            return self.command(f"status {self.alias} mode").strip().lower() == "playing"
-        except RuntimeError:
-            return False
+        return self.initialized and pygame.mixer.music.get_busy()
 
     def stop(self):
-        if self.is_open:
-            try:
-                self.command(f"stop {self.alias}")
-            except RuntimeError:
-                pass
-        self.close()
+        if self.initialized:
+            pygame.mixer.music.stop()
 
     def close(self):
-        if self.is_open:
-            try:
-                self.command(f"close {self.alias}")
-            except RuntimeError:
-                pass
-            self.is_open = False
+        if self.initialized:
+            pygame.mixer.music.stop()
+
+    def shutdown(self):
+        if self.initialized:
+            pygame.mixer.music.stop()
+            pygame.mixer.quit()
+            self.initialized = False
 
 
 class ClosingAnnouncer:
@@ -121,7 +94,7 @@ class ClosingAnnouncer:
         self.is_playing = False
         self.next_index = 0
         self.seconds_left = INTERVAL_SECONDS
-        self.player = WindowsMCIPlayer()
+        self.player = AudioPlayer()
         self.volume_var = tk.IntVar(value=DEFAULT_VOLUME)
         self.playlist_states = []
         self._build_ui()
@@ -369,7 +342,7 @@ class ClosingAnnouncer:
 
     def on_close(self):
         self.running = False
-        self.player.stop()
+        self.player.shutdown()
         self.root.destroy()
 
 
