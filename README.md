@@ -1,32 +1,40 @@
 # Hamleys Closing Announcer
 
-A simple Windows desktop app for playing the store's three closing announcements.
+A lightweight, standalone Windows desktop application for the store's three closing announcements.
+
+## Designed for low-spec Windows PCs
+
+- Native Windows MP3 playback through the built-in Multimedia Control Interface (MCI / WinMM).
+- Simple Tkinter desktop interface.
+- No PySide6, Pygame, browser, internet connection, or Python installation required on the target PC.
+- The EXE bundles the three MP3 announcement files.
+- The app's volume slider changes only this application's announcement playback volume. It does not change Windows master volume or Resiowall volume.
+
+The GitHub Actions build machine uses Python and PyInstaller to package the application. The Hamleys PC only needs to run the downloaded EXE.
 
 ## How it works
-- Press **Start Announcements**.
-- The app waits 1 minute 20 seconds, then plays the next MP3.
-- Announcements rotate in order: 1st, 2nd, 3rd, then repeat.
-- After an announcement finishes, the 1 minute 20 second interval starts again.
-- Press **Stop** at any time to stop playback.
-- The closing time displayed in the app is **10:00 PM**.
 
-## Announcement volume
-The app has its own announcement-volume slider. It controls only MP3 playback inside this application. It does not change Windows master volume, mute other applications, or change Resiowall's volume.
+1. Press **Start Announcements**.
+2. The app waits 1 minute 20 seconds.
+3. It plays announcement 1, then 2, then 3, and repeats.
+4. After each announcement finishes, the 1 minute 20 second countdown starts again.
+5. Press **Stop** to stop playback.
+6. Store closing time displayed: **10:00 PM**.
 
-**Audio behaviour:** Because Resiowall remains untouched, its music may continue underneath an announcement. To pause or duck Resiowall independently, the store's audio setup needs a separate supported control or mixer input.
+## Audio note
 
-## Build
-GitHub Actions builds the Windows executable on every push to `main`, or when manually started from the Actions tab.
+The app has independent volume control for its own MP3 announcements. It intentionally does not change Windows master volume or Resiowall. Therefore, Resiowall music may continue underneath the announcement. Muting or pausing Resiowall requires a separate supported control or audio mixer.
 
-Download the **Hamleys-Closing-Announcer-Windows** artifact from the completed workflow run.
+## Download
+
+Open the **Actions** tab, select the latest successful **Build Lightweight Windows EXE** run, and download the `Hamleys-Closing-Announcer-Lightweight-Windows` artifact. Extract the ZIP and double-click `Hamleys Closing Announcer.exe`.
 
 ## Local development
+
+Python 3.11 on Windows is required only if running from source:
+
 ```powershell
-python -m pip install -r requirements.txt
 python main.py
 ```
 
-The three MP3 files must remain in the project root when running from source.
-
-
-https://drive.google.com/drive/folders/1gCxL8Jn2w2kzCXhqYJfimgU3Yd0rnFzU
+The three MP3 files must be beside `main.py` when running from source.
